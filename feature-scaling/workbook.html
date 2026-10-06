@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+</head><body style="margin:0">
+<title>Feature Scaling Workbook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Public+Sans:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a single reading column (a workbook). Labs sit inside the text as framed panels. */
+:root{
+  --bg:#f6f7fa; --paper:#ffffff; --ink:#1a2236; --muted:#5b6680; --line:#e1e6f0; --axis:#9aa5bd;
+  --accent:#3552d4; --m:#3552d4; --s:#d9741f; --good:#1f9467; --warn:#c9a227; --hl:#eef1fd;
+  --serif:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --sans:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#10141f; --paper:#171d2c; --ink:#e7eaf3; --muted:#9ca6c0; --line:#262e42; --axis:#4d5a78;
+  --accent:#8199ff; --m:#8199ff; --s:#ff9d4d; --good:#45c995; --warn:#e3c04a; --hl:#1f2740; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10141f; --paper:#171d2c; --ink:#e7eaf3; --muted:#9ca6c0; --line:#262e42; --axis:#4d5a78;
+  --accent:#8199ff; --m:#8199ff; --s:#ff9d4d; --good:#45c995; --warn:#e3c04a; --hl:#1f2740; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--serif);font-size:17px;line-height:1.65}
+.doc{max-width:780px;margin:0 auto;padding-inline:16px;padding-block:32px 64px}
+h1,h2,h3,.lab,.toc,button,select,input,textarea,table{font-family:var(--sans)}
+h1{font-size:2.1rem;line-height:1.15;margin:0 0 6px;font-weight:800;letter-spacing:-.02em;text-wrap:balance}
+h2{font-size:1.4rem;margin:48px 0 8px;font-weight:800;text-wrap:balance}
+h2 small{display:block;font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:700}
+h3{font-size:1rem;margin:0;font-weight:800}
+p{margin:0 0 14px;max-width:68ch}
+.sub{color:var(--muted);font-size:1.05rem}
+.toc{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.88rem;padding:12px 0;border-block:1px solid var(--line);margin:18px 0 0}
+.toc a{color:var(--accent);text-decoration:none}.toc a:hover{text-decoration:underline}
+code,.f{font-family:var(--mono);font-size:.88em}
+.formula{font-family:var(--mono);font-size:1rem;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:0 0 14px;overflow-x:auto}
+.key{background:var(--hl);border-radius:8px;padding:12px 16px;margin:0 0 16px}
+.key p:last-child{margin:0}
+.lab{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px;margin:8px 0 22px;font-size:.92rem;line-height:1.5;display:grid;gap:14px;min-width:0}
+.lab-h{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline}
+.lab-h .tag{font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;background:var(--accent);color:var(--paper);padding:2px 8px;border-radius:4px}
+.lab .do{color:var(--muted);margin:0}
+.ctl{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.ctl label{display:flex;gap:6px;align-items:center;font-weight:600}
+input[type=number]{width:4.2em;font:inherit;padding:4px 6px;border:1px solid var(--axis);border-radius:6px;background:var(--bg);color:var(--ink)}
+select,textarea{font:inherit;padding:4px 6px;border:1px solid var(--axis);border-radius:6px;background:var(--bg);color:var(--ink)}
+textarea{width:100%;box-sizing:border-box;font-family:var(--mono);font-size:.85rem;min-height:3.2em;resize:vertical}
+button.p{font:600 .85rem var(--sans);padding:6px 12px;border:1px solid var(--axis);border-radius:6px;background:var(--bg);color:var(--ink);cursor:pointer}
+button.p:hover{border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.col{display:grid;gap:8px;align-content:start;min-width:0}
+.vote{display:flex;height:22px;border-radius:5px;overflow:hidden;font-size:.72rem;font-weight:700;color:#fff}
+.vote div{display:flex;align-items:center;justify-content:center;min-width:0;overflow:hidden;white-space:nowrap}
+.rank{width:100%;border-collapse:collapse;font-size:.82rem;font-variant-numeric:tabular-nums}
+.rank td{padding:3px 4px;border-top:1px solid var(--line)}
+.rank td:last-child{text-align:right;font-family:var(--mono)}
+.rank tr.me td{font-weight:800}
+.rank tr.win td{background:color-mix(in srgb,var(--good) 16%,transparent)}
+.legend{display:flex;gap:14px;font-size:.8rem;font-weight:600}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.verdict{margin:0;padding:10px 12px;border-radius:8px;background:color-mix(in srgb,var(--good) 13%,transparent)}
+svg{width:100%;height:auto;display:block}
+.scroll{overflow-x:auto}
+.data{width:100%;border-collapse:collapse;font-size:.8rem;font-variant-numeric:tabular-nums;font-family:var(--mono)}
+.data th{font-family:var(--sans);text-align:right;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:4px 6px}
+.data td{text-align:right;padding:3px 6px;border-top:1px solid var(--line);white-space:nowrap}
+.data tr.flag td{color:var(--warn);font-weight:700}
+.stats{font-family:var(--mono);font-size:.8rem;color:var(--muted)}
+.bars{display:grid;gap:4px}
+.bar{display:flex;height:14px;border-radius:4px;overflow:hidden;background:var(--line)}
+.bar div{height:100%}
+.cheat{width:100%;border-collapse:collapse;font-family:var(--sans);font-size:.88rem;line-height:1.45}
+.cheat th,.cheat td{text-align:left;padding:8px;border-top:1px solid var(--line);vertical-align:top}
+.cheat th{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+details{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:0 0 10px;font-family:var(--sans);font-size:.95rem}
+details summary{cursor:pointer;font-weight:700}
+details p{margin:10px 0 0}
+a{color:var(--accent)}
+</style>
+
+<article class="doc">
+  <h1>Feature Scaling Workbook</h1>
+  <p class="sub">Normalization and standardization, one idea at a time. Read a chapter, then play with its lab. Every number on this page is calculated live, so change things and see what happens.</p>
+  <nav class="toc" aria-label="Chapters">
+    <a href="#c1">1. The problem</a><a href="#c2">2. Normalization</a><a href="#c3">3. Standardization</a>
+    <a href="#c4">4. Outliers</a><a href="#c5">5. Why ML cares</a><a href="#c6">6. Rules of thumb</a><a href="#c7">7. Test yourself</a>
+  </nav>
+
+  <!-- ================= 1 ================= -->
+  <h2 id="c1"><small>Chapter 1</small>The problem: bigger numbers win the vote</h2>
+  <p>A teacher ranks 8 students by <b>Maths + Sports</b>. Maths is marked out of 100 and Sports out of 10. Nobody decided that Maths should matter more, but it does: Maths marks spread over tens of points, while Sports marks spread over only a few points, so Maths decides almost everything.</p>
+  <div class="key"><p><b>Core idea.</b> When you combine columns (add them, measure distance, feed them to a model), the column whose values <i>vary more in raw numbers</i> quietly gets more say. That is the problem scaling fixes.</p></div>
+  <p>The lab ranks the class three ways. The coloured bar on top of each ranking is the <b>vote share</b>: how much of the difference between students comes from each subject.</p>
+
+  <div class="lab" id="lab1">
+    <div class="lab-h"><span class="tag">Lab 1</span><h3>Riya vs Aman</h3></div>
+    <p class="do">Try this: (1) Look at who wins in each column. (2) Switch Sports to "out of 100" and watch the raw ranking flip while the other two stay the same. (3) Change Riya's and Aman's marks.</p>
+    <div class="ctl">
+      <label>Riya Maths <input type="number" id="rm" min="0" max="100" value="90"></label>
+      <label>Riya Sports <input type="number" id="rs" min="0" max="10" value="2"></label>
+      <label>Aman Maths <input type="number" id="am" min="0" max="100" value="80"></label>
+      <label>Aman Sports <input type="number" id="as" min="0" max="10" value="10"></label>
+      <label>Sports marked out of <select id="out"><option value="1">10</option><option value="10">100</option></select></label>
+    </div>
+    <div class="legend"><span><i style="background:var(--m)"></i>Maths vote</span><span><i style="background:var(--s)"></i>Sports vote</span></div>
+    <div class="cols" id="l1cols"></div>
+    <p class="verdict" id="l1v"></p>
+  </div>
+
+  <p>Notice step (2). Marking Sports out of 100 instead of 10 is only a change of <i>unit</i>. Nothing about the students changed, yet the raw ranking changed. The scaled rankings did not move. <b>Scaling makes your result independent of the units someone happened to choose.</b></p>
+
+  <!-- ================= 2 ================= -->
+  <h2 id="c2"><small>Chapter 2</small>Normalization: put every column in the same box</h2>
+  <p>Normalization (also called min-max scaling) squeezes each column so its smallest value becomes 0 and its largest becomes 1.</p>
+  <div class="formula">normalized = (x − min) / (max − min)</div>
+  <p>Read it in two steps. <code>x − min</code> asks "how far above the lowest value is this?" Dividing by <code>max − min</code> (the full range) turns that into a fraction of the range. It works like a percentage, except 0% means "the lowest in the class" rather than "zero marks".</p>
+  <p>Worked example, Maths in Lab 1: min is 60 and max is 95. Aman scored 80, so (80 − 60) / (95 − 60) = 20 / 35 = <b>0.57</b>. He sits 57% of the way up the Maths range.</p>
+  <div class="key"><p><b>Remember it as:</b> "Where does this value sit between the lowest and the highest?" The answer is always between 0 and 1.</p></div>
+
+  <!-- ================= 3 ================= -->
+  <h2 id="c3"><small>Chapter 3</small>Standardization: count steps from the average</h2>
+  <p>Standardization (also called the z-score) asks a different question: <b>how unusual is this value?</b> It does two things.</p>
+  <p>First it subtracts the <b>mean</b> (the average), so the average becomes 0. Values above average become positive and values below become negative. Then it divides by the <b>standard deviation</b>, which is the typical distance of values from the average. That makes the answer a count of "steps", where one step is a typical gap for that column.</p>
+  <div class="formula">z = (x − mean) / standard deviation</div>
+  <p>Worked example, Sports in Lab 1: the mean is about 5.6 and the standard deviation is about 2.5. Aman scored 10, so (10 − 5.6) / 2.5 ≈ <b>+1.75</b>. He is 1.75 steps above the average, which is very good for Sports. Riya's Maths 90 is (90 − 77.5) / 11.5 ≈ <b>+1.09</b>: good, but less unusual.</p>
+  <div class="key"><p><b>Remember it as:</b> "How many typical steps above or below average?" There is no fixed range; most values land between −2 and +2, and beyond ±3 is rare.</p></div>
+  <p>In Lab 2 you can type any numbers and see both methods side by side. The shaded band on the raw line marks the average ± 1 standard deviation, which becomes −1 to +1 after standardizing.</p>
+
+  <div class="lab" id="lab2">
+    <div class="lab-h"><span class="tag">Lab 2</span><h3>Your own numbers</h3></div>
+    <p class="do">Try this: (1) Load each preset and compare the lines. (2) Type a huge number at the end and watch the Min-max line. (3) Notice that the order of the dots never changes.</p>
+    <div class="ctl">
+      <button class="p" data-preset="marks">Exam marks</button>
+      <button class="p" data-preset="sal">Salaries</button>
+      <button class="p" data-preset="ceo">Salaries + one CEO</button>
+    </div>
+    <label for="nums" style="font-weight:600">Numbers (comma separated)</label>
+    <textarea id="nums"></textarea>
+    <p class="stats" id="l2stats"></p>
+    <svg id="l2svg" viewBox="0 0 640 330" role="img" aria-label="Raw values and their scaled versions on four number lines"></svg>
+    <div class="scroll"><table class="data" id="l2tbl"></table></div>
+  </div>
+
+  <!-- ================= 4 ================= -->
+  <h2 id="c4"><small>Chapter 4</small>Outliers: where the two methods behave differently</h2>
+  <p>Load <b>Salaries + one CEO</b> in Lab 2. One person earns ₹10,00,000 while everyone else earns ₹32,000 to ₹1,05,000.</p>
+  <p><b>Min-max</b> gives the CEO the value 1, because they are the max. Everyone else gets crushed into 0 to 0.07, so the differences between normal people almost disappear. Min-max trusts the min and the max, and an outlier <i>is</i> the max.</p>
+  <p><b>Z-score</b> is stretched too, because the outlier pulls the mean up and makes the standard deviation larger. But the outlier gets a z of about +3.5, so it is clearly flagged as unusual. That is why z-scores are a classic first anomaly detector. The flagged row in the table turns yellow.</p>
+  <p><b>Robust scaling</b> uses the <b>median</b> (the middle value) instead of the mean, and the <b>IQR</b> (the spread of the middle 50% of values) instead of the standard deviation. One extreme value barely moves either of them, so normal people keep their spread.</p>
+  <div class="formula">robust = (x − median) / IQR</div>
+
+  <!-- ================= 5 ================= -->
+  <h2 id="c5"><small>Chapter 5</small>Why ML cares: distance is a sum of gaps</h2>
+  <p>Many models judge how similar two rows are by distance:</p>
+  <div class="formula">distance = √( gap_in_age² + gap_in_salary² )</div>
+  <p>This is exactly the Maths + Sports problem again. Each column adds its gap, and a column measured in big numbers (salary, in thousands) overpowers one measured in small numbers (age, in tens). Pick two people below and look at how much of the distance each feature supplies.</p>
+
+  <div class="lab" id="lab3">
+    <div class="lab-h"><span class="tag">Lab 3</span><h3>Who is closest to whom?</h3></div>
+    <p class="do">Try this: compare Asha with Ravi, then with Kiran. Which one looks closer raw, and which one after standardizing?</p>
+    <div class="ctl">
+      <label>Compare <select id="pa"></select></label>
+      <label>with <select id="pb"></select></label>
+    </div>
+    <div class="legend"><span><i style="background:var(--m)"></i>Age's share of the distance</span><span><i style="background:var(--s)"></i>Salary's share</span></div>
+    <div class="cols" id="l3cols"></div>
+    <p class="verdict" id="l3v"></p>
+  </div>
+  <p>Models that measure distance or learn by gradient steps all have this problem: KNN, k-means, SVM, PCA, linear and logistic regression with regularization, and neural networks. For a picture of the whole dataset moving, open the <a href="lab.html">Feature Scaling Lab</a>.</p>
+
+  <!-- ================= 6 ================= -->
+  <h2 id="c6"><small>Chapter 6</small>Rules of thumb</h2>
+  <div class="scroll">
+  <table class="cheat">
+    <tr><th>Method</th><th>Question it answers</th><th>Output</th><th>Use when</th><th>Weak spot</th></tr>
+    <tr><td><b>Min-max</b></td><td>Where between lowest and highest?</td><td>0 to 1</td><td>You need a fixed range (image pixels, some neural net inputs) and there are no big outliers</td><td>One outlier crushes everyone else</td></tr>
+    <tr><td><b>Z-score</b></td><td>How many typical steps from average?</td><td>Centred on 0, mostly −3 to +3</td><td>The default for most models; flagging unusual values</td><td>The outlier still stretches mean and std</td></tr>
+    <tr><td><b>Robust</b></td><td>Steps from the middle, ignoring extremes</td><td>Centred on 0</td><td>Data with outliers you must keep</td><td>Slightly less familiar to explain</td></tr>
+  </table>
+  </div>
+  <p style="margin-top:14px"><b>When not to bother.</b> Tree models (decision trees, random forest, XGBoost) never add columns together. They ask one question about one column at a time, such as "is salary &gt; 50,000?". Scaling doesn't change the order of values, so the same split works either way.</p>
+  <p><b>The train/test rule.</b> Calculate min, max, mean and standard deviation from the <b>training data only</b>, then apply those same numbers to the test data and to new data in production. If you calculate them on all the data first, information from the test set leaks into training and your evaluation looks better than reality.</p>
+  <p><b>What scaling never changes.</b> The order of values within a column, and the shape of their pattern. Scaling is always <code>(x − a) / b</code>, which only slides and stretches the ruler. What it changes is the balance <i>between</i> columns.</p>
+
+  <!-- ================= 7 ================= -->
+  <h2 id="c7"><small>Chapter 7</small>Test yourself</h2>
+  <p>Say your answer out loud first, then open it.</p>
+  <details><summary>1. In one sentence, what problem does scaling solve?</summary><p>When columns are combined, columns with bigger raw numbers quietly get more weight; scaling puts every column on a comparable ruler so each gets a fair say.</p></details>
+  <details><summary>2. A column has min 20 and max 70. What is 45 after min-max scaling?</summary><p>(45 − 20) / (70 − 20) = 25 / 50 = 0.5. It sits exactly halfway between lowest and highest.</p></details>
+  <details><summary>3. A value has z = −2. What does that mean?</summary><p>It is two standard deviations (two typical steps) below the average. That is unusually low, but not extreme.</p></details>
+  <details><summary>4. Your data has a few huge outliers that are real and must stay. Which scaler, and why?</summary><p>Robust scaling. Median and IQR barely move because of a few extreme values, so the normal rows keep their spread. Min-max would crush them.</p></details>
+  <details><summary>5. Why don't random forests need scaling?</summary><p>Each split compares one column with a threshold. Scaling keeps the order of values, so the same split separates the same rows. Columns are never added together, so no column can overpower another.</p></details>
+  <details><summary>6. You computed the mean and std on the whole dataset, then split into train and test. What's wrong?</summary><p>Data leakage. The test set influenced the scaling numbers, so the model indirectly saw test data. Fit the scaler on train only, then reuse it for test and production.</p></details>
+  <details><summary>7. In production, a new value is bigger than the training max. What does min-max give?</summary><p>A value above 1. Models that assume inputs stay in 0 to 1 may behave strangely, which is one more reason min-max is fragile.</p></details>
+</article>
+
+<script>
+const $=id=>document.getElementById(id),NS="http://www.w3.org/2000/svg";
+const el=(t,a,p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);p.appendChild(e);return e};
+function stats(xs){const s=[...xs].sort((a,b)=>a-b),n=s.length,mean=s.reduce((a,b)=>a+b,0)/n;
+  const q=p=>{const i=(n-1)*p,lo=Math.floor(i);return lo+1<n?s[lo]+(s[lo+1]-s[lo])*(i-lo):s[lo]};
+  return{n,min:s[0],max:s[n-1],mean,sd:Math.sqrt(s.reduce((a,v)=>a+(v-mean)**2,0)/n),med:q(.5),iqr:q(.75)-q(.25)}}
+const F={raw:v=>v,norm:(v,s)=>s.max===s.min?0:(v-s.min)/(s.max-s.min),std:(v,s)=>s.sd?(v-s.mean)/s.sd:0,rob:(v,s)=>s.iqr?(v-s.med)/s.iqr:0};
+const r2=v=>(+v.toFixed(2)).toString(),inr=v=>Math.round(v).toLocaleString("en-IN");
+const fmt=v=>Math.abs(v)>=1000?inr(v):r2(v);
+
+/* ---------- Lab 1 ---------- */
+const CLASS=[["Riya",90,2],["Aman",80,10],["Kabir",70,6],["Zoya",85,5],["Ishan",60,7],["Pooja",75,4],["Rohan",95,3],["Sara",65,8]];
+const clamp=(v,lo,hi)=>Math.min(hi,Math.max(lo,isFinite(v)?v:lo));
+function lab1(){
+  const f=+$("out").value,rows=CLASS.map(r=>[...r]);
+  rows[0][1]=clamp(+$("rm").value,0,100);rows[0][2]=clamp(+$("rs").value,0,10);
+  rows[1][1]=clamp(+$("am").value,0,100);rows[1][2]=clamp(+$("as").value,0,10);
+  rows.forEach(r=>r[2]*=f);
+  const sm=stats(rows.map(r=>r[1])),ss=stats(rows.map(r=>r[2]));
+  const M=[["raw","Raw total","Maths + Sports as marked"],["norm","Normalized total","each subject → 0 to 1, then add"],["std","Standardized total","each subject → z-score, then add"]];
+  const winners={};
+  $("l1cols").innerHTML=M.map(([m,title,how])=>{
+    const parts=rows.map(r=>[F[m](r[1],sm),F[m](r[2],ss)]);
+    const sdm=stats(parts.map(p=>p[0])).sd,sds=stats(parts.map(p=>p[1])).sd,vm=sdm+sds?sdm/(sdm+sds)*100:50;
+    const ranked=rows.map((r,i)=>({n:r[0],t:parts[i][0]+parts[i][1]})).sort((a,b)=>b.t-a.t);winners[m]=ranked[0].n;
+    return `<div class="col"><h3>${title}</h3><span class="f" style="color:var(--muted)">${how}</span>
+      <div class="vote" role="img" aria-label="Maths ${vm.toFixed(0)} percent, Sports ${(100-vm).toFixed(0)} percent">
+        <div style="width:${vm}%;background:var(--m)">${vm>=14?"Maths "+vm.toFixed(0)+"%":""}</div>
+        <div style="width:${100-vm}%;background:var(--s)">${100-vm>=14?"Sports "+(100-vm).toFixed(0)+"%":""}</div></div>
+      <table class="rank">${ranked.map((o,k)=>`<tr class="${k===0?"win":""} ${o.n==="Riya"||o.n==="Aman"?"me":""}"><td>${k+1}. ${o.n}</td><td>${r2(o.t)}</td></tr>`).join("")}</table></div>`}).join("");
+  $("l1v").innerHTML=`Raw winner: <b>${winners.raw}</b>. Normalized winner: <b>${winners.norm}</b>. Standardized winner: <b>${winners.std}</b>. `+
+    (f===1?`With Sports out of 10, Maths gets most of the raw vote, so whoever is best at Maths tends to win.`
+          :`With Sports out of 100, the raw vote flips towards Sports. The scaled columns did not change at all.`);
+}
+["rm","rs","am","as","out"].forEach(id=>$(id).addEventListener("input",lab1));
+
+/* ---------- Lab 2 ---------- */
+const PRESETS={marks:"90, 80, 70, 85, 60, 75, 95, 65, 72, 88, 55, 78",
+  sal:"62000, 60000, 50000, 45000, 58000, 66000, 72000, 80000, 75000, 95000, 32000, 105000",
+  ceo:"62000, 60000, 50000, 45000, 58000, 66000, 72000, 80000, 75000, 95000, 32000, 105000, 1000000"};
+function nice(r){if(!(r>0))return 1;const p=10**Math.floor(Math.log10(r)),f=r/p;return(f<1.5?1:f<3.5?2:f<7.5?5:10)*p}
+const short=v=>Math.abs(v)>=100000?r2(v/100000)+"L":Math.abs(v)>=1000?r2(v/1000)+"k":r2(v);
+function lab2(){
+  const xs=$("nums").value.split(/[,\s]+/).map(Number).filter(v=>v!==""&&isFinite(v));
+  const S=$("l2svg");S.textContent="";
+  if(xs.length<3){$("l2stats").textContent="Type at least 3 numbers.";$("l2tbl").innerHTML="";return}
+  const s=stats(xs);
+  $("l2stats").textContent=`n=${s.n} · min ${fmt(s.min)} · max ${fmt(s.max)} · mean ${fmt(s.mean)} · std ${fmt(s.sd)} · median ${fmt(s.med)} · IQR ${fmt(s.iqr)}`;
+  const X0=110,X1=620;
+  const z=xs.map(v=>F.std(v,s)),rb=xs.map(v=>F.rob(v,s)),nm=xs.map(v=>F.norm(v,s));
+  const zr=[Math.min(-3,...z),Math.max(3,...z)],rr=[Math.min(-3,...rb),Math.max(3,...rb)];
+  const lines=[{lab:"Raw",vals:xs,lo:s.min-(s.max-s.min)*.04,hi:s.max+(s.max-s.min)*.04,y:40},
+    {lab:"Min-max",vals:nm,lo:-.05,hi:1.05,y:120,box:[0,1]},
+    {lab:"Z-score",vals:z,lo:zr[0],hi:zr[1],y:200,band:true},
+    {lab:"Robust",vals:rb,lo:rr[0],hi:rr[1],y:280}];
+  const X=(L,v)=>X0+(v-L.lo)/(L.hi-L.lo||1)*(X1-X0);
+  // threads
+  xs.forEach((_,i)=>{for(let k=0;k<3;k++){const a=lines[k],b=lines[k+1];
+    el("line",{x1:X(a,a.vals[i]),y1:a.y,x2:X(b,b.vals[i]),y2:b.y,stroke:"var(--line)","stroke-width":1},S)}});
+  lines.forEach(L=>{
+    el("text",{x:8,y:L.y+4,"font-size":13,"font-weight":800,fill:"var(--ink)","font-family":"var(--sans)"},S).textContent=L.lab;
+    if(L.lab==="Raw"){el("rect",{x:X(L,s.mean-s.sd),y:L.y-12,width:Math.max(X(L,s.mean+s.sd)-X(L,s.mean-s.sd),1),height:24,rx:4,fill:"var(--good)",opacity:.15},S);
+      el("line",{x1:X(L,s.mean),x2:X(L,s.mean),y1:L.y-14,y2:L.y+14,stroke:"var(--good)","stroke-width":2},S);
+      el("text",{x:X(L,s.mean),y:L.y-18,"text-anchor":"middle","font-size":10,fill:"var(--good)","font-family":"var(--sans)","font-weight":700},S).textContent="mean ± 1 std"}
+    if(L.band)el("rect",{x:X(L,-1),y:L.y-12,width:X(L,1)-X(L,-1),height:24,rx:4,fill:"var(--good)",opacity:.15},S);
+    if(L.box)el("rect",{x:X(L,0),y:L.y-12,width:X(L,1)-X(L,0),height:24,rx:4,fill:"none",stroke:"var(--warn)","stroke-dasharray":"5 4","stroke-width":1.5},S);
+    el("line",{x1:X0,x2:X1,y1:L.y,y2:L.y,stroke:"var(--axis)"},S);
+    const st=nice((L.hi-L.lo)/6);
+    for(let t=Math.ceil(L.lo/st)*st;t<=L.hi+1e-9;t+=st){const x=X(L,t);
+      el("line",{x1:x,x2:x,y1:L.y,y2:L.y+4,stroke:"var(--axis)"},S);
+      el("text",{x,y:L.y+17,"text-anchor":"middle","font-size":10,fill:"var(--muted)","font-family":"var(--mono)"},S).textContent=short(+t.toFixed(10))}
+    L.vals.forEach((v,i)=>{const c=el("circle",{cx:X(L,v),cy:L.y,r:5,fill:Math.abs(z[i])>3?"var(--warn)":"var(--accent)",stroke:"var(--paper)","stroke-width":1.5},S);
+      el("title",{},c).textContent=`${fmt(xs[i])} → ${L.lab} ${r2(v)}`})});
+  $("l2tbl").innerHTML=`<tr><th>Value</th><th>Min-max</th><th>Z-score</th><th>Robust</th></tr>`+
+    xs.map((v,i)=>`<tr class="${Math.abs(z[i])>3?"flag":""}"><td>${fmt(v)}</td><td>${r2(nm[i])}</td><td>${r2(z[i])}</td><td>${r2(rb[i])}</td></tr>`).join("");
+}
+$("nums").addEventListener("input",lab2);
+document.querySelectorAll("[data-preset]").forEach(b=>b.addEventListener("click",()=>{$("nums").value=PRESETS[b.dataset.preset];lab2()}));
+
+/* ---------- Lab 3 ---------- */
+const PEOPLE=[["Asha",24,62000],["Ravi",58,60000],["Kiran",26,50000],["Meera",29,45000],["Dev",33,58000],["Isha",37,66000],
+  ["Arjun",41,72000],["Nina",46,80000],["Sam",50,75000],["Tara",55,95000],["Neel",23,32000],["Om",60,105000]];
+const sa=stats(PEOPLE.map(p=>p[1])),ssal=stats(PEOPLE.map(p=>p[2]));
+["pa","pb"].forEach((id,k)=>{$(id).innerHTML=PEOPLE.map((p,i)=>`<option value="${i}" ${i===(k?1:0)?"selected":""}>${p[0]} (${p[1]}, ₹${inr(p[2])})</option>`).join("");$(id).addEventListener("input",lab3)});
+function dist(a,b,m){const ga=F[m](a[1],sa)-F[m](b[1],sa),gs=F[m](a[2],ssal)-F[m](b[2],ssal);return{ga,gs,d:Math.hypot(ga,gs)}}
+function nearest(i,m){return PEOPLE.map((p,j)=>({j,d:dist(PEOPLE[i],p,m).d})).filter(o=>o.j!==i).sort((x,y)=>x.d-y.d)[0].j}
+function lab3(){
+  const i=+$("pa").value,j=+$("pb").value,a=PEOPLE[i],b=PEOPLE[j];
+  if(i===j){$("l3cols").innerHTML="";$("l3v").textContent="Pick two different people.";return}
+  $("l3cols").innerHTML=[["raw","Raw"],["std","Standardized"]].map(([m,t])=>{const o=dist(a,b,m),A=o.ga**2,Sv=o.gs**2,tot=A+Sv||1,pa=A/tot*100;
+    const g=m==="raw"?[`${Math.abs(o.ga)} yrs`,`₹${inr(Math.abs(o.gs))}`]:[`${r2(Math.abs(o.ga))} steps`,`${r2(Math.abs(o.gs))} steps`];
+    return `<div class="col"><h3>${t}</h3>
+      <span class="f">age gap ${g[0]} · salary gap ${g[1]}</span>
+      <span class="f">distance = √(${fmt(A)} + ${fmt(Sv)}) = <b>${fmt(o.d)}</b></span>
+      <div class="bars"><div class="bar"><div style="width:${pa}%;background:var(--m)"></div><div style="width:${100-pa}%;background:var(--s)"></div></div></div>
+      <span class="f" style="color:var(--muted)">age ${pa<0.1&&pa>0?pa.toFixed(3):pa.toFixed(1)}% · salary ${(100-pa).toFixed(1)}%</span>
+      <span class="f">${a[0]}'s closest person here: <b>${PEOPLE[nearest(i,m)][0]}</b></span></div>`}).join("");
+  const nr=nearest(i,"raw"),ns=nearest(i,"std");
+  $("l3v").innerHTML=nr===ns?`For ${a[0]}, the closest person is ${PEOPLE[nr][0]} either way. Still, look at the raw bar: salary decides almost all of the distance.`
+    :`Raw says ${a[0]}'s closest person is <b>${PEOPLE[nr][0]}</b> (age ${PEOPLE[nr][1]}). After standardizing it is <b>${PEOPLE[ns][0]}</b> (age ${PEOPLE[ns][1]}). In raw numbers the age gap is too small to matter next to salary.`;
+}
+
+$("nums").value=PRESETS.marks;lab1();lab2();lab3();
+</script>
+
+</body></html>

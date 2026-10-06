@@ -1,0 +1,333 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Feature Scaling Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: graph-paper lab. Chart left, worked numbers right, three-feature section, memory hooks last. */
+:root{
+  --bg:#f5f7fb; --paper:#ffffff; --ink:#18223a; --muted:#5d6883; --grid:#e3e8f2; --axis:#9aa6c0;
+  --dot:#3f5bd8; --pick:#e2662b; --near:#1f9d74; --box:#c9a227;
+  --fa:#8a4fd1; --fs:#b8901a; --fc:#1f88b0;
+  --sans:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1422; --paper:#161d30; --ink:#e6eaf5; --muted:#9aa5c2; --grid:#232c44; --axis:#4b5878;
+  --dot:#7d95ff; --pick:#ff8a52; --near:#43c99b; --box:#e0bd45;
+  --fa:#b98cff; --fs:#e0bd45; --fc:#5cc3ea; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1422; --paper:#161d30; --ink:#e6eaf5; --muted:#9aa5c2; --grid:#232c44; --axis:#4b5878;
+  --dot:#7d95ff; --pick:#ff8a52; --near:#43c99b; --box:#e0bd45;
+  --fa:#b98cff; --fs:#e0bd45; --fc:#5cc3ea; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55}
+.wrap{max-width:1100px;margin:0 auto;padding-inline:16px;padding-block:28px 48px;display:grid;gap:22px}
+h1{font-size:1.9rem;font-weight:800;margin:0;letter-spacing:-.02em;text-wrap:balance}
+h2{font-size:1.25rem;margin:0;font-weight:800;text-wrap:balance}
+h3{font-size:1rem;margin:0;font-weight:800}
+.lede{margin:4px 0 0;color:var(--muted);max-width:68ch}
+.controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.seg{display:flex;flex-wrap:wrap;border:1px solid var(--axis);border-radius:8px;overflow:hidden;width:fit-content}
+.seg button{font:600 .9rem var(--sans);padding:8px 14px;border:0;background:var(--paper);color:var(--ink);cursor:pointer}
+.seg button+button{border-left:1px solid var(--axis)}
+.seg button[aria-pressed="true"]{background:var(--dot);color:var(--paper)}
+.seg button:focus-visible,label:focus-within,circle:focus-visible{outline:2px solid var(--pick);outline-offset:2px}
+label.tog{display:flex;gap:8px;align-items:center;cursor:pointer;font-weight:600}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+@media (max-width:860px){.main{grid-template-columns:1fr}}
+.card{background:var(--paper);border:1px solid var(--grid);border-radius:10px;padding:16px;min-width:0}
+.caption{margin:0 0 10px;min-height:3.1em}
+svg{width:100%;height:auto;display:block}
+.hint{color:var(--muted);font-size:.85rem;margin:8px 0 0}
+table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:.78rem;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:6px 4px;border-top:1px solid var(--grid);vertical-align:top}
+th{font-family:var(--sans);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+tr.on td{background:color-mix(in srgb,var(--dot) 12%,transparent)}
+td .f{color:var(--muted);display:block}
+.who{font-size:1.05rem;margin:0 0 10px}
+.who b{color:var(--pick)}
+.near{margin:12px 0 0}
+.near b{color:var(--near)}
+.hooks{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.hooks p{margin:0}
+code{font-family:var(--mono);font-size:.85em}
+
+/* three-feature section */
+.multi{display:grid;gap:18px}
+.multi .head{display:grid;gap:10px}
+.multi .head p{margin:0;color:var(--muted);max-width:72ch}
+.part{display:grid;gap:10px;border-top:1px solid var(--grid);padding-top:16px}
+.part p{margin:0;max-width:72ch}
+.key{display:flex;flex-wrap:wrap;gap:14px;font-size:.85rem;font-weight:600}
+.key span{display:flex;align-items:center;gap:6px}
+.key i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.gaps{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.gap{border:1px solid var(--grid);border-radius:8px;padding:10px 12px;font-size:.85rem;display:grid;gap:4px;min-width:0}
+.gap .t{font-weight:800}
+.gap .r{font-family:var(--mono);font-size:.8rem;font-variant-numeric:tabular-nums}
+.gap .r b{color:var(--near)}
+.dist{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.dist .col{display:grid;gap:10px;align-content:start;min-width:0}
+.row{display:grid;gap:4px;font-size:.85rem}
+.row .nm{display:flex;justify-content:space-between;gap:8px;font-weight:600}
+.row .nm span{font-family:var(--mono);font-weight:400;color:var(--muted);font-size:.78rem}
+.bar{display:flex;height:16px;border-radius:4px;overflow:hidden;background:var(--grid)}
+.bar div{height:100%;min-width:0}
+.share{font-family:var(--mono);font-size:.74rem;color:var(--muted)}
+.verdict{margin:0;padding:10px 12px;border-radius:8px;background:color-mix(in srgb,var(--near) 12%,transparent)}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Feature Scaling Lab</h1>
+    <p class="lede">12 people, two features: <b>age</b> (23 to 60 years) and <b>salary</b> (₹32,000 to ₹1,05,000 a month). The chart uses <b>the same ruler on both axes</b>, the way a distance-based model sees the data. Switch the view and watch the dots move.</p>
+  </header>
+
+  <div class="controls">
+    <div class="seg" role="group" aria-label="Scaling method">
+      <button id="m-raw" data-m="raw" aria-pressed="true">1. Raw</button>
+      <button id="m-norm" data-m="norm" aria-pressed="false">2. Normalized</button>
+      <button id="m-std" data-m="std" aria-pressed="false">3. Standardized</button>
+      <button id="m-rob" data-m="rob" aria-pressed="false">4. Robust</button>
+    </div>
+    <label class="tog"><input type="checkbox" id="outlier"> Add an outlier: a CEO earning ₹10,00,000</label>
+  </div>
+
+  <div class="main">
+    <div class="card">
+      <p class="caption" id="caption"></p>
+      <svg id="chart" viewBox="0 0 640 400" role="img" aria-label="Scatter of salary against age on equal axes"></svg>
+      <p class="hint">Click any dot to pick a person. Lines join them to their 2 closest people in the current view.</p>
+    </div>
+    <div class="card">
+      <p class="who" id="who"></p>
+      <table id="tbl"></table>
+      <p class="near" id="near"></p>
+    </div>
+  </div>
+
+  <section class="card multi" aria-labelledby="multi-h">
+    <div class="head">
+      <h2 id="multi-h">Three features: what scaling keeps, what it changes</h2>
+      <p>Each person now also has a <b>credit score</b> (CIBIL-style, 300 to 900; here 610 to 820). The picked person from the chart above is highlighted in orange. Pick a scaling method for this section:</p>
+      <div class="seg" role="group" aria-label="Scaling method for three features">
+        <button data-m2="norm" aria-pressed="true">Normalized</button>
+        <button data-m2="std" aria-pressed="false">Standardized</button>
+        <button data-m2="rob" aria-pressed="false">Robust</button>
+      </div>
+      <div class="key"><span><i style="background:var(--fa)"></i>age</span><span><i style="background:var(--fs)"></i>salary</span><span><i style="background:var(--fc)"></i>credit score</span></div>
+    </div>
+
+    <div class="part">
+      <h3>A. One feature at a time: the spacing pattern is kept</h3>
+      <p>For each feature, the top line is the raw value and the bottom line is the scaled value, each with its own ruler. The threads join the same person. Every thread is straight down: each person lands in exactly the same spot. Only the numbers on the ruler change.</p>
+      <svg id="strips" viewBox="0 0 640 400" role="img" aria-label="Raw and scaled number lines for age, salary and credit score"></svg>
+      <div class="gaps" id="gaps"></div>
+    </div>
+
+    <div class="part">
+      <h3>B. All features on one shared ruler: the balance changes</h3>
+      <p>A distance-based model puts every feature on the same ruler. Raw, salary stretches across the whole width while age and credit score shrink to a dot. After scaling, all three take up similar room.</p>
+      <svg id="shared" viewBox="0 0 640 330" role="img" aria-label="All three features on one shared ruler, raw and scaled"></svg>
+    </div>
+
+    <div class="part">
+      <h3>C. What that does to distance</h3>
+      <p>Distance between two people adds up the squared gap in each feature. The bar shows how much of that total each feature supplies, for the picked person and their two closest people.</p>
+      <div class="dist" id="dist"></div>
+      <p class="verdict" id="verdict"></p>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 style="margin-bottom:8px">How to remember it</h2>
+    <div class="hooks">
+      <p><b>Normalize = fit everything into one box.</b> Like turning marks into a percentage: 40/50 and 80/100 both become 0.8. Formula: <code>(x − min) / (max − min)</code>, so every value lands between 0 and 1.</p>
+      <p><b>Standardize = steps from average.</b> z = +2 means "two standard deviations above average", whichever exam or unit it came from. Formula: <code>(x − mean) / std</code>, which puts the average at 0 and makes the spread 1.</p>
+      <p><b>What stays the same.</b> All three methods are <code>(x − a) / b</code>. Within a feature, the order of values and the ratios of the gaps between them are kept, and the shape of the distribution does not change. Each feature gets its own <code>a</code> and <code>b</code>, so the balance between features changes.</p>
+      <p><b>Why bother?</b> Models that measure distance or use gradients (KNN, k-means, SVM, PCA, neural nets) treat 1 unit in any column as equal. Unscaled, ₹1 counts the same as 1 year. Tree models split on thresholds, so they don't care.</p>
+      <p><b>Outliers.</b> Min-max lets one extreme value own the box. Z-score is stretched too, but the outlier stands out at |z| ≈ 3, which is a quick anomaly flag. Robust scaling (median and IQR) ignores it.</p>
+    </div>
+  </section>
+</div>
+
+<script>
+const BASE=[["Asha",24,62000,710],["Ravi",58,60000,780],["Kiran",26,50000,650],["Meera",29,45000,690],["Dev",33,58000,720],["Isha",37,66000,740],
+  ["Arjun",41,72000,760],["Nina",46,80000,700],["Sam",50,75000,800],["Tara",55,95000,770],["Neel",23,32000,610],["Om",60,105000,820]];
+const CEO=["CEO",45,1000000,840];
+const W=640,H=400,L=60,R=16,T=16,B=40,PW=W-L-R,PH=H-T-B;
+let mode="raw",mode2="norm",outlier=false,pick=0,pos=null;
+const svg=document.getElementById("chart"),NS="http://www.w3.org/2000/svg";
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const people=()=>outlier?[...BASE,CEO]:BASE;
+function stats(xs){const s=[...xs].sort((a,b)=>a-b),n=s.length,mean=s.reduce((a,b)=>a+b)/n;
+  const q=p=>{const i=(n-1)*p,lo=Math.floor(i);return lo+1<n?s[lo]+(s[lo+1]-s[lo])*(i-lo):s[lo]};
+  return{min:s[0],max:s[n-1],mean,sd:Math.sqrt(s.reduce((a,v)=>a+(v-mean)**2,0)/n),med:q(.5),iqr:q(.75)-q(.25)}}
+const F={raw:(v)=>v,norm:(v,s)=>(v-s.min)/(s.max-s.min),std:(v,s)=>(v-s.mean)/s.sd,rob:(v,s)=>(v-s.med)/s.iqr};
+function data(){const P=people(),sa=stats(P.map(p=>p[1])),ss=stats(P.map(p=>p[2]));
+  return{P,sa,ss,pts:P.map(p=>({x:F[mode](p[2],ss),y:F[mode](p[1],sa)}))}}
+function view(pts){const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y);
+  let x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+  if(mode==="norm"){x0=Math.min(x0,0);y0=Math.min(y0,0);x1=Math.max(x1,1);y1=Math.max(y1,1)}
+  const dx=Math.max(x1-x0,1e-9)*1.15,dy=Math.max(y1-y0,1e-9)*1.15,s=Math.min(PW/dx,PH/dy);
+  return{s,cx:(x0+x1)/2,cy:(y0+y1)/2}}
+const px=(v,p)=>[L+PW/2+(p.x-v.cx)*v.s,T+PH/2-(p.y-v.cy)*v.s];
+function nice(r){const p=10**Math.floor(Math.log10(r)),f=r/p;return(f<1.5?1:f<3.5?2:f<7.5?5:10)*p}
+const fmt=v=>Math.abs(v)>=1000?Math.round(v).toLocaleString("en-IN"):(+v.toFixed(2)).toString();
+const el=(t,a,parent)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);(parent||svg).appendChild(e);return e};
+
+function neighbours(pts){const p=pts[pick];return pts.map((q,i)=>({i,d:Math.hypot(q.x-p.x,q.y-p.y)}))
+  .filter(o=>o.i!==pick).sort((a,b)=>a.d-b.d).slice(0,2).map(o=>o.i)}
+
+function draw(cur,showExtras){
+  const {P,pts}=data(),v=view(pts);svg.textContent="";
+  const xmin=v.cx-PW/2/v.s,xmax=v.cx+PW/2/v.s,ymin=v.cy-PH/2/v.s,ymax=v.cy+PH/2/v.s,step=nice((xmax-xmin)/6);
+  const g=el("g",{opacity:showExtras?1:.25});
+  for(let t=Math.ceil(xmin/step)*step;t<=xmax;t+=step){const x=px(v,{x:t,y:0})[0],z=Math.abs(t)<step/1e6;
+    el("line",{x1:x,x2:x,y1:T,y2:T+PH,stroke:z?"var(--axis)":"var(--grid)","stroke-width":z?1.5:1},g);
+    el("text",{x,y:H-B+16,"text-anchor":"middle","font-size":10,fill:"var(--muted)","font-family":"var(--mono)"},g).textContent=fmt(t)}
+  for(let t=Math.ceil(ymin/step)*step;t<=ymax;t+=step){const y=px(v,{x:0,y:t})[1],z=Math.abs(t)<step/1e6;
+    el("line",{x1:L,x2:L+PW,y1:y,y2:y,stroke:z?"var(--axis)":"var(--grid)","stroke-width":z?1.5:1},g);
+    el("text",{x:L-6,y:y+3,"text-anchor":"end","font-size":10,fill:"var(--muted)","font-family":"var(--mono)"},g).textContent=fmt(t)}
+  el("text",{x:L+PW,y:H-6,"text-anchor":"end","font-size":11,"font-weight":600,fill:"var(--ink)"}).textContent="salary →";
+  el("text",{x:14,y:T+10,"font-size":11,"font-weight":600,fill:"var(--ink)",transform:`rotate(-90 14 ${T+10})`,"text-anchor":"end"}).textContent="age →";
+  if(mode==="norm"&&showExtras){const[a,b]=px(v,{x:0,y:1}),[c,d]=px(v,{x:1,y:0});
+    el("rect",{x:a,y:b,width:c-a,height:d-b,fill:"none",stroke:"var(--box)","stroke-width":2,"stroke-dasharray":"6 4"});
+    el("text",{x:c-4,y:b-5,"text-anchor":"end","font-size":11,"font-weight":600,fill:"var(--box)"}).textContent="the 0 to 1 box"}
+  const nb=neighbours(pts);
+  if(showExtras)nb.forEach(i=>{const[a,b]=cur[pick],[c,d]=cur[i];el("line",{x1:a,y1:b,x2:c,y2:d,stroke:"var(--near)","stroke-width":2.5})});
+  P.forEach((p,i)=>{const[x,y]=cur[i],isP=i===pick,isN=showExtras&&nb.includes(i);
+    const c=el("circle",{cx:x,cy:y,r:isP?8:6,fill:isP?"var(--pick)":p[0]==="CEO"?"var(--box)":"var(--dot)",
+      stroke:isN?"var(--near)":"var(--paper)","stroke-width":isN?3:1.5,style:"cursor:pointer",tabindex:0});
+    el("title",{},c).textContent=`${p[0]}: age ${p[1]}, ₹${p[2].toLocaleString("en-IN")}`;
+    c.addEventListener("click",()=>{pick=i;render(false)});
+    c.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();pick=i;render(false)}})});
+  if(showExtras){const lab=(i,dy,col)=>{const[x,y]=cur[i];el("text",{x:x+9,y:y+dy,"font-size":12,"font-weight":800,fill:col,"paint-order":"stroke",stroke:"var(--paper)","stroke-width":3}).textContent=P[i][0]};
+    lab(pick,-10,"var(--pick)");nb.forEach((i,k)=>lab(i,18+k*14,"var(--near)"));
+    if(outlier&&pick!==P.length-1)lab(P.length-1,-10,"var(--box)")}
+}
+
+const CAP={
+  raw:"Raw values on one shared ruler. Salary spans about ₹73,000 but age spans only 37, so the age direction is squashed flat. A distance-based model only “sees” salary: Asha’s closest match is Ravi, who is 34 years older.",
+  norm:"Min becomes 0 and max becomes 1, separately for each feature. Both features now fill the same box, so a gap in age counts as much as a gap in salary. Asha’s closest people are now close in both features.",
+  std:"Each feature is shifted so its average sits at 0, then divided by its standard deviation. The numbers now mean “how many steps from average”. There is no fixed box: most people fall within about ±2.",
+  rob:"Like standardization, but it uses the median and the IQR (the spread of the middle 50%). With clean data it looks almost the same. Turn on the outlier to see why it exists."};
+const CAPO={
+  raw:"The CEO stretches the salary ruler to ₹10 lakh. Everyone else is crushed into one corner.",
+  norm:"The CEO took the value 1, so the 12 normal salaries are crushed into 0 to 0.07 and the cloud collapses into a vertical stripe. Min-max trusts the min and max, and an outlier owns the max.",
+  std:"The outlier stretches the standard deviation, so the normal salaries bunch up below 0. But the CEO stands out at z ≈ 3.2, and |z| > 3 is a classic anomaly flag.",
+  rob:"The median and IQR barely move when one extreme value arrives, so the 12 normal people keep their spread. The CEO is simply far away, which is the honest picture."};
+
+function table(){const {P,sa,ss}=data(),p=P[pick];
+  const row=(m,name,fa,fs)=>`<tr class="${m===mode?"on":""}"><td>${name}</td><td>${fa}</td><td>${fs}</td></tr>`;
+  const r=v=>(+v.toFixed(2)).toString(),k=v=>Math.round(v).toLocaleString("en-IN");
+  document.getElementById("who").innerHTML=`<b>${p[0]}</b>: age ${p[1]}, salary ₹${k(p[2])}`;
+  document.getElementById("tbl").innerHTML=`<tr><th>View</th><th>age</th><th>salary</th></tr>`+
+   row("raw","Raw",p[1],k(p[2]))+
+   row("norm","Norm.",`${r(F.norm(p[1],sa))}<span class="f">(${p[1]}−${sa.min})/(${sa.max}−${sa.min})</span>`,`${r(F.norm(p[2],ss))}<span class="f">(${k(p[2])}−${k(ss.min)})/(${k(ss.max)}−${k(ss.min)})</span>`)+
+   row("std","Std.",`${r(F.std(p[1],sa))}<span class="f">(${p[1]}−${r(sa.mean)})/${r(sa.sd)}</span>`,`${r(F.std(p[2],ss))}<span class="f">(${k(p[2])}−${k(ss.mean)})/${k(ss.sd)}</span>`)+
+   row("rob","Robust",`${r(F.rob(p[1],sa))}<span class="f">(${p[1]}−${r(sa.med)})/${r(sa.iqr)}</span>`,`${r(F.rob(p[2],ss))}<span class="f">(${k(p[2])}−${k(ss.med)})/${k(ss.iqr)}</span>`);
+  const {pts}=data(),nb=neighbours(pts);
+  document.getElementById("near").innerHTML=`Closest in this view: `+nb.map(i=>`<b>${P[i][0]}</b> (age ${P[i][1]}, ₹${k(P[i][2])})`).join(" and ");
+  document.getElementById("caption").textContent=(outlier?CAPO:CAP)[mode];
+  document.querySelectorAll(".seg button[data-m]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.m===mode));
+  multi()}
+
+/* ---------- three-feature section ---------- */
+const FEATS=[{c:1,name:"age",unit:"yrs",col:"var(--fa)",raw:v=>`${v}`},
+             {c:2,name:"salary",unit:"₹",col:"var(--fs)",raw:v=>`₹${Math.round(v).toLocaleString("en-IN")}`},
+             {c:3,name:"credit score",unit:"pts",col:"var(--fc)",raw:v=>`${v}`}];
+const M2NAME={norm:"normalized",std:"standardized",rob:"robust-scaled"};
+function mdata(){const P=people();const st=FEATS.map(f=>stats(P.map(p=>p[f.c])));
+  const raw=P.map(p=>FEATS.map(f=>p[f.c])),sc=P.map(p=>FEATS.map((f,k)=>F[mode2](p[f.c],st[k])));return{P,st,raw,sc}}
+function ticks(lo,hi,n){const st=nice((hi-lo)/n)||1,out=[];for(let t=Math.ceil(lo/st)*st;t<=hi+st*1e-9;t+=st)out.push(+t.toFixed(10));return out}
+const tf=v=>Math.abs(v)>=1000?(Math.abs(v)>=100000?(v/100000).toFixed(v%100000?1:0)+"L":(v/1000).toFixed(0)+"k"):(+v.toFixed(2)).toString();
+function pickDot(g,i){return e=>{pick=i;render(false)}}
+function dot(g,x,y,i,P,col,label){const isP=i===pick,isC=P[i][0]==="CEO";
+  const c=el("circle",{cx:x,cy:y,r:isP?7:5,fill:isP?"var(--pick)":isC?"var(--box)":col,stroke:"var(--paper)","stroke-width":1.5,style:"cursor:pointer",tabindex:0},g);
+  el("title",{},c).textContent=label;c.addEventListener("click",pickDot(g,i));
+  c.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();pick=i;render(false)}});return c}
+
+function multi(){
+  const {P,st,raw,sc}=mdata();
+  // A. strips
+  const S=document.getElementById("strips");S.textContent="";
+  const x0=30,x1=610,lin=(v,lo,hi)=>x0+(hi===lo?0.5:(v-lo)/(hi-lo))*(x1-x0);
+  FEATS.forEach((f,k)=>{const yb=14+k*130,yr=yb+34,ys=yb+92;
+    const rv=raw.map(r=>r[k]),sv=sc.map(r=>r[k]),rlo=Math.min(...rv),rhi=Math.max(...rv),slo=Math.min(...sv),shi=Math.max(...sv);
+    el("text",{x:x0-20,y:yb+4,"font-size":13,"font-weight":800,fill:f.col},S).textContent=f.name;
+    el("text",{x:x1+20,y:yb+4,"font-size":11,"text-anchor":"end",fill:"var(--muted)"},S).textContent=`raw (${f.unit}) on top, ${M2NAME[mode2]} below`;
+    el("line",{x1:x0,x2:x1,y1:yr,y2:yr,stroke:"var(--axis)"},S);el("line",{x1:x0,x2:x1,y1:ys,y2:ys,stroke:"var(--axis)"},S);
+    ticks(rlo,rhi,5).forEach(t=>{const x=lin(t,rlo,rhi);if(x<x0-1||x>x1+1)return;
+      el("line",{x1:x,x2:x,y1:yr-4,y2:yr,stroke:"var(--axis)"},S);
+      el("text",{x,y:yr-8,"text-anchor":"middle","font-size":10,fill:"var(--muted)","font-family":"var(--mono)"},S).textContent=tf(t)});
+    ticks(slo,shi,5).forEach(t=>{const x=lin(t,slo,shi);if(x<x0-1||x>x1+1)return;
+      el("line",{x1:x,x2:x,y1:ys,y2:ys+4,stroke:"var(--axis)"},S);
+      el("text",{x,y:ys+16,"text-anchor":"middle","font-size":10,fill:"var(--muted)","font-family":"var(--mono)"},S).textContent=tf(t)});
+    P.forEach((p,i)=>{const a=lin(rv[i],rlo,rhi),b=lin(sv[i],slo,shi);
+      el("line",{x1:a,y1:yr,x2:b,y2:ys,stroke:i===pick?"var(--pick)":"var(--grid)","stroke-width":i===pick?2:1.2},S)});
+    P.forEach((p,i)=>{if(i===pick)return;dot(S,lin(rv[i],rlo,rhi),yr,i,P,f.col,`${p[0]}: ${f.raw(rv[i])}`);dot(S,lin(sv[i],slo,shi),ys,i,P,f.col,`${p[0]}: ${fmt(sv[i])}`)});
+    dot(S,lin(rv[pick],rlo,rhi),yr,pick,P,f.col,`${P[pick][0]}: ${f.raw(rv[pick])}`);dot(S,lin(sv[pick],slo,shi),ys,pick,P,f.col,`${P[pick][0]}: ${fmt(sv[pick])}`)});
+
+  // gap ratios
+  const g3=document.getElementById("gaps");
+  g3.innerHTML=FEATS.map((f,k)=>{const ord=P.map((_,i)=>i).sort((a,b)=>raw[a][k]-raw[b][k]);let j=ord.indexOf(pick);
+    j=Math.min(Math.max(j-1,0),ord.length-3);const [a,b,c]=ord.slice(j,j+3);
+    const rg1=raw[b][k]-raw[a][k],rg2=raw[c][k]-raw[b][k],sg1=sc[b][k]-sc[a][k],sg2=sc[c][k]-sc[b][k];
+    const gr=v=>k===1?`₹${Math.round(v).toLocaleString("en-IN")}`:`${v} ${f.unit}`,sr=v=>v.toFixed(3);
+    const ratio=(x,y)=>x===0?"n/a":(y/x).toFixed(2);
+    return `<div class="gap"><span class="t" style="color:${f.col}">${f.name}: ${P[a][0]} → ${P[b][0]} → ${P[c][0]}</span>
+      <span class="r">raw gaps &nbsp;&nbsp;${gr(rg1)} and ${gr(rg2)} · ratio <b>${ratio(rg1,rg2)}</b></span>
+      <span class="r">scaled gaps ${sr(sg1)} and ${sr(sg2)} · ratio <b>${ratio(sg1,sg2)}</b></span></div>`}).join("");
+
+  // B. shared ruler
+  const Sh=document.getElementById("shared");Sh.textContent="";
+  const X0=118,lin2=(v,lo,hi)=>X0+(hi===lo?0.5:(v-lo)/(hi-lo))*(x1-X0);
+  const panel=(vals,y0,title)=>{const all=vals.flat(),lo=Math.min(0,...all),hi=Math.max(...all);
+    el("text",{x:10,y:y0,"font-size":12,"font-weight":800,fill:"var(--ink)"},Sh).textContent=title;
+    const ya=y0+108;el("line",{x1:X0,x2:x1,y1:ya,y2:ya,stroke:"var(--axis)"},Sh);
+    ticks(lo,hi,6).forEach(t=>{const x=lin2(t,lo,hi);if(x<X0-1||x>x1+1)return;
+      el("line",{x1:x,x2:x,y1:y0+12,y2:ya,stroke:"var(--grid)"},Sh);
+      el("text",{x,y:ya+14,"text-anchor":"middle","font-size":10,fill:"var(--muted)","font-family":"var(--mono)"},Sh).textContent=tf(t)});
+    FEATS.forEach((f,k)=>{const y=y0+28+k*28,v=vals.map(r=>r[k]),a=lin2(Math.min(...v),lo,hi),b=lin2(Math.max(...v),lo,hi);
+      el("text",{x:10,y:y+4,"font-size":11,"font-weight":700,fill:f.col},Sh).textContent=f.name;
+      el("rect",{x:a-3,y:y-9,width:Math.max(b-a,0)+6,height:18,rx:9,fill:f.col,opacity:.18},Sh);
+      P.forEach((p,i)=>{if(i!==pick)dot(Sh,lin2(v[i],lo,hi),y,i,P,f.col,`${p[0]} ${f.name}: ${fmt(v[i])}`)});
+      dot(Sh,lin2(v[pick],lo,hi),y,pick,P,f.col,`${P[pick][0]} ${f.name}: ${fmt(v[pick])}`);
+      if(b-a<4)el("text",{x:b+12,y:y+4,"font-size":11,fill:"var(--muted)"},Sh).textContent="← squashed to a dot"})};
+  panel(raw,14,"Raw: one ruler for all three features");
+  panel(sc,178,`${M2NAME[mode2][0].toUpperCase()+M2NAME[mode2].slice(1)}: one ruler for all three features`);
+
+  // C. distance shares
+  const near=vals=>{const p=vals[pick];return vals.map((q,i)=>({i,parts:q.map((v,k)=>(v-p[k])**2)}))
+    .map(o=>({...o,d:Math.sqrt(o.parts.reduce((a,b)=>a+b,0))})).filter(o=>o.i!==pick).sort((a,b)=>a.d-b.d).slice(0,2)};
+  const col=(vals,title)=>`<div class="col"><h3>${title}</h3>`+near(vals).map(o=>{const tot=o.parts.reduce((a,b)=>a+b,0)||1,sh=o.parts.map(v=>v/tot*100);
+      const pr=P[o.i];return `<div class="row"><div class="nm">${pr[0]}<span>age ${pr[1]} · ₹${pr[2].toLocaleString("en-IN")} · ${pr[3]}</span></div>
+      <div class="bar">${sh.map((s,k)=>`<div style="width:${s}%;background:${FEATS[k].col}"></div>`).join("")}</div>
+      <div class="share">${sh.map((s,k)=>`${FEATS[k].name} ${s>=99.95||s<0.05&&s>0?s.toFixed(3):s.toFixed(1)}%`).join(" · ")}</div></div>`}).join("")+`</div>`;
+  const nr=near(raw).map(o=>o.i),ns=near(sc).map(o=>o.i);
+  document.getElementById("dist").innerHTML=col(raw,`Raw: ${P[pick][0]}'s 2 closest`)+col(sc,`${M2NAME[mode2][0].toUpperCase()+M2NAME[mode2].slice(1)}: ${P[pick][0]}'s 2 closest`);
+  const same=nr.every(i=>ns.includes(i));
+  document.getElementById("verdict").innerHTML=same
+    ?`For <b>${P[pick][0]}</b> the two closest people happen to be the same either way, but look at the bars: raw, the match is decided almost entirely by salary.`
+    :`For <b>${P[pick][0]}</b> the closest people change: raw gives <b>${nr.map(i=>P[i][0]).join(" and ")}</b>, scaled gives <b>${ns.map(i=>P[i][0]).join(" and ")}</b>. Inside each feature nothing moved (part A). Only the balance between features changed (parts B and C).`;
+  document.querySelectorAll("[data-m2]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.m2===mode2));
+}
+
+let anim=0;
+function render(animate){
+  const {pts}=data(),v=view(pts),target=pts.map(p=>px(v,p));table();
+  if(!animate||reduce||!pos||pos.length!==target.length){pos=target;draw(pos,true);return}
+  const from=pos,t0=performance.now(),id=++anim,D=750;
+  const step=now=>{if(id!==anim)return;let t=Math.min((now-t0)/D,1);t=t<.5?2*t*t:1-(-2*t+2)**2/2;
+    pos=from.map((a,i)=>[a[0]+(target[i][0]-a[0])*t,a[1]+(target[i][1]-a[1])*t]);
+    draw(pos,t===1);if(t<1)requestAnimationFrame(step)};
+  requestAnimationFrame(step)}
+
+document.querySelectorAll(".seg button[data-m]").forEach(b=>b.addEventListener("click",()=>{mode=b.dataset.m;render(true)}));
+document.querySelectorAll("[data-m2]").forEach(b=>b.addEventListener("click",()=>{mode2=b.dataset.m2;multi()}));
+document.getElementById("outlier").addEventListener("change",e=>{outlier=e.target.checked;if(!outlier&&pick>=BASE.length)pick=0;pos=null;render(false)});
+render(false);
+</script>
+
+</body></html>
